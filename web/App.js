@@ -178,7 +178,9 @@ class App extends React.Component {
                             <img src={this.state.user.photoURL} width="50" height="50" alt="Profile" />
                             <p>{this.state.user.email}</p>
                             <Button variant="primary" onClick={() => this.addClass()}>Add Class</Button>
-                            <Button variant="secondary" className="mx-2">Edit Profile</Button>
+                            <Button variant="secondary" className="mx-2" onClick={() => this.setState({ showEditProfileModal: true })}>
+                                Edit Profile
+                            </Button>
                             <h4 className="mt-3">My Classs</h4>
                             <ul>
                                 {this.state.classes.map(course => (
