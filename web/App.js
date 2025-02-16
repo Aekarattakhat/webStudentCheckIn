@@ -6,8 +6,12 @@ class App extends React.Component {
         user: null,
         classes: [],
         showAddClassModal: false,
-        newClassName: ""
+        newClassName: "",
+        showEditProfileModal: false,
+        displayName: "",
+        photoURL: ""
     };
+
 
     componentDidMount() {
         firebase.auth().onAuthStateChanged((user) => {
@@ -52,6 +56,19 @@ class App extends React.Component {
         }
     }
 
+    updateProfile = () => {
+        const user = firebase.auth().currentUser;
+        if (user) {
+            user.updateProfile({
+                displayName: this.state.displayName,
+                photoURL: this.state.photoURL 
+            }).then(() => {
+                this.setState({ showEditProfileModal: false });
+            }).catch(error => console.error("Error updating profile:", error));
+        }
+    };
+
+
     handleClassSubmit = () => {
         if (this.state.newClassName) {
             db.collection("classes").add({
@@ -60,6 +77,21 @@ class App extends React.Component {
             });
             this.setState({ showAddClassModal: false, newClassName: "" });
         }
+    };
+
+    handleImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+    
+        const storageRef = firebase.storage().ref();
+        const user = firebase.auth().currentUser;
+        const fileRef = storageRef.child(`profile_pictures/${user.uid}`);
+    
+        fileRef.put(file).then(() => {
+            fileRef.getDownloadURL().then((url) => {
+                this.setState({ photoURL: url });
+            });
+        }).catch(error => console.error("Upload failed:", error));
     };
 
     render() {
@@ -74,14 +106,18 @@ class App extends React.Component {
                             <img src={this.state.user.photoURL} width="50" height="50" alt="Profile" />
                             <p>{this.state.user.email}</p>
                             <Button variant="primary" onClick={() => this.addClass()}>Add Class</Button>
-                            <Button variant="secondary" className="mx-2">Edit Profile</Button>
-                            <h4 className="mt-3">My Classs</h4>
+                            <Button variant="secondary" className="mx-2" onClick={() => this.setState({ showEditProfileModal: true })}>
+                                Edit Profile
+                            </Button>
+                            
+                            <h4 className="mt-3">My Class</h4>
                             <ul>
                                 {this.state.classes.map(course => (
                                     <li key={course.id}>
                                         {course.name} 
                                         <Button size="sm" onClick={() => alert("Manage: " + course.name)}>Manage</Button>
                                         <Button size="sm" variant="danger" className="mx-2" onClick={() => this.deleteClass(course.id)}>Delete</Button>
+                                        
                                     </li>
                                 ))}
                             </ul>
@@ -108,6 +144,30 @@ class App extends React.Component {
                         <Button variant="primary" onClick={this.handleClassSubmit}>Add</Button>
                     </Modal.Footer>
                 </Modal>
+
+                  {/* Edit Profile Modal */}
+                  <Modal show={this.state.showEditProfileModal} onHide={() => this.setState({ showEditProfileModal: false })}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Edit Profile</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form>
+                            <Form.Group>
+                                <Form.Label>Display Name</Form.Label>
+                                <Form.Control type="text" value={this.state.displayName} onChange={(e) => this.setState({ displayName: e.target.value })} />
+                            </Form.Group>
+                            <Form.Group>
+                                <Form.Label>Upload Profile Picture</Form.Label>
+                                <Form.Control type="file" accept="image/*" onChange={this.handleImageUpload} />
+                            </Form.Group>
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => this.setState({ showEditProfileModal: false })}>Cancel</Button>
+                        <Button variant="primary" onClick={this.updateProfile}>Save</Button>
+                    </Modal.Footer>
+                </Modal>
+
             </Card>
         );
     }
