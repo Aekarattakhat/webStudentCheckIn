@@ -6,8 +6,42 @@ class App extends React.Component {
         user: null,
         classes: [],
         showAddClassModal: false,
-        newClassName: ""
+        newClassName: "",
+        image: null,
+        url: "",
+        progress: 0,
     };
+
+    handleChange = (e) => {
+        if (e.target.files[0]) {
+            const image = e.target.files[0];
+            this.setState(() => ({ image }));
+        }
+    };
+
+    handleUpload = async () => {
+        const { image } = this.state;
+        const formData = new FormData();
+        formData.append('image', image);
+        const response = await fetch('https://api.imgur.com/3/image', {
+            method: 'POST',
+            headers: {
+              Authorization: '5773d40476e80e1',
+            },
+            body: formData,
+          });
+        
+          const data = await response.json();
+          if (response.status != 200 || !data.data.link.includes("imgur")) {
+            console.log("error can't up load:"+response.status)
+            return
+          }
+          console.log(response.status)
+          console.log(data.data.link)
+          this.setState({url:data.data.link})
+    };
+
+    
 
     componentDidMount() {
         firebase.auth().onAuthStateChanged((user) => {
@@ -79,7 +113,7 @@ class App extends React.Component {
                             <ul>
                                 {this.state.classes.map(course => (
                                     <li key={course.id}>
-                                        {course.name} 
+                                        {course.name}
                                         <Button size="sm" onClick={() => alert("Manage: " + course.name)}>Manage</Button>
                                         <Button size="sm" variant="danger" className="mx-2" onClick={() => this.deleteClass(course.id)}>Delete</Button>
                                     </li>
@@ -89,6 +123,17 @@ class App extends React.Component {
                     )}
                 </Card.Body>
                 <Card.Footer>Footer Information</Card.Footer>
+
+                <input type="file" onChange={this.handleChange} />
+                <button onClick={this.handleUpload}>Upload</button>
+                <br />
+                {this.state.url && (
+                    <img
+                        src={this.state.url}
+                        alt="Uploaded"
+                        style={{ width: "300px", marginTop: "10px" }}
+                    />
+                )}
 
                 {/* Add Class Modal */}
                 <Modal show={this.state.showAddClassModal} onHide={() => this.setState({ showAddClassModal: false })}>
@@ -140,3 +185,5 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
+const storageRef = storage.ref();
